@@ -1,0 +1,88 @@
+---
+title: "bird_joins"
+format: html
+editor: visual
+---
+
+#### Setup
+
+```{r}
+pacman::p_load("tidyverse", "here")
+```
+
+### Download csvs
+
+```{r}
+bird_observations <- read_csv(here::here("data", "52_pp52_birds_1.csv"))
+
+sites <- read_csv(here::here("data","52_pp52_sites_1.csv"))
+
+surveys <- read_csv(here("data", "52_pp52_surveys_1.csv"))
+
+taxalist <- read_csv(here("data","52_pp52_taxalist_1.csv"))
+```
+
+Now for some $subseting$
+
+```{r}
+birds_subset <- bird_observations %>% 
+  filter(species_id %in% c("BHCO","RWBL"), 
+         site_id %in% c("LI-W","NU-C"))
+```
+
+$Leftjoin$ practice
+
+```{r}
+birds_left <- left_join(birds_subset, sites,
+                        by = "site_id") %>% 
+  left_join(birds_subset, taxalist, by = "species_id")
+
+
+```
+
+$Full Join$ practice
+
+```{r}
+birds_full <- full_join(birds_subset, sites, by = "site_id")
+```
+
+#### Task 2
+
+```{r}
+bird_observations <- bird_observations %>% rename(bird_obs_notes = notes)
+```
+
+big subset we need: 
+ -  joins taxonomic, site, and survey, 
+ -  only survey date, common_name, park_name, & bird_count
+```{r}
+bird_obs_sub <- bird_observations %>% 
+  left_join(sites) %>% 
+  left_join(taxalist) %>% 
+  left_join(surveys) %>% 
+  select(c("survey_date","common_name", "park_name", "bird_count"))
+```
+and more wrangling 
+```{r}
+bird_obs_sub <- bird_obs_sub %>% 
+  mutate(survey_month = month(survey_date)) %>% 
+  mutate(survey_month = as.factor(survey_month))
+```
+
+Now i get to learn relocate 
+```{r}
+bird_obs_sub <- bird_obs_sub %>% 
+  relocate(survey_month, .after = survey_date) #can do before or after
+
+```
+
+ok last mutations
+
+```{r}
+bird_obs_sub <- bird_obs_sub %>% 
+  group_by(park_name,survey_month) %>% 
+  summarize(count = n()) %>% 
+  ungroup() %>% 
+  filter(park_name %in% c("Lindo", "Orme", "Palomino", "Sonrisa"))
+```
+
